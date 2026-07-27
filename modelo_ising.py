@@ -23,4 +23,4 @@ malha_spins = np.random.choice([-1, 1], size=(10, 10))
 energia = calcular_energia(malha_spins)
 
 print(f"Estado do Spin (Matriz 10x10):\n{malha_spins}")
-print(f"\nEnergia Total do Sistema: {energia} Joules (ou unidades de J)")
+print(f"\nEnergia Total do Sistema: {energia} Joules (ou unidades de J)")w

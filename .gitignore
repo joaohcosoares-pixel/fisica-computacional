@@ -1,1 +1,3 @@
 .venv/
+topological_dataset.csv
+topological_mlp_binary.pt
