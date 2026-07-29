@@ -255,7 +255,7 @@ def train_classifier(csv_path: Path = CSV_PATH, epochs: int = 150, batch_size: i
 
     X_tr_raw, y_tr_raw = X_raw[tr_idx], y[tr_idx]
 
-    # 1. IMPLEMENTAÇÃO SMOTE
+    # 1. IMPLEMENTAÇÃO SMOTE (Balanceamento Espacial)
     print("\nAplicando SMOTE no conjunto de treinamento...")
     smote = SMOTE(random_state=42)
     X_tr_smote, y_tr_smote = smote.fit_resample(X_tr_raw, y_tr_raw)
@@ -270,12 +270,8 @@ def train_classifier(csv_path: Path = CSV_PATH, epochs: int = 150, batch_size: i
 
     model = TopoPhaseMLP(n_classes).to(device)
 
-    # 3. WEIGHTED CROSS-ENTROPY
-    # Pesos estritos calculados pelo inverso da frequência do dataset de treino original
-    class_counts = np.bincount(y_tr_raw)
-    class_weights = 1.0 / class_counts
-    class_weights = torch.tensor(class_weights, dtype=torch.float32).to(device)
-    criterion = nn.CrossEntropyLoss(weight=class_weights)
+    # 3. FUNÇÃO DE CUSTO SIMÉTRICA (Remoção da redundância de pesos)
+    criterion = nn.CrossEntropyLoss()
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
@@ -285,7 +281,6 @@ def train_classifier(csv_path: Path = CSV_PATH, epochs: int = 150, batch_size: i
     patience = 15
     epochs_no_improve = 0
     
-    # Atualização dos logs para métricas robustas
     print(f'\n{"Ep":>4}  {"TrLoss":>8}  {"VaLoss":>8}  {"F1(Mac)":>8}  {"Recall":>7}')
     print("─" * 45)
 

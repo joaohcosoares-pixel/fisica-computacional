@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import RandomOverSampler
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader, Dataset
@@ -66,18 +66,22 @@ def train_classifier(csv_path=CSV_PATH, epochs=150, batch_size=256, lr=1e-3, val
 
     X_tr_raw, y_tr_raw = X_raw[tr_idx], y[tr_idx]
 
-    print("\nAplicando SMOTE no conjunto de treinamento...")
-    smote = SMOTE(random_state=42)
-    X_tr_smote, y_tr_smote = smote.fit_resample(X_tr_raw, y_tr_raw)
+    # Implementação da repetição estrita dos estados quânticos válidos
+    print("\nAplicando RandomOverSampler (Cópia Exata) no conjunto de treinamento...")
+    ros = RandomOverSampler(random_state=42)
+    X_tr_res, y_tr_res = ros.fit_resample(X_tr_raw, y_tr_raw)
     
-    scaler = StandardScaler().fit(X_tr_smote)
-    X_tr = scaler.transform(X_tr_smote)
+    # Padronização e DataLoaders
+    scaler = StandardScaler().fit(X_tr_res)
+    X_tr = scaler.transform(X_tr_res)
     X_va = scaler.transform(X_raw[va_idx])
 
-    tr_loader = DataLoader(ChernDataset(X_tr, y_tr_smote), batch_size=batch_size, shuffle=True)
+    tr_loader = DataLoader(ChernDataset(X_tr, y_tr_res), batch_size=batch_size, shuffle=True)
     va_loader = DataLoader(ChernDataset(X_va, y[va_idx]), batch_size=512, shuffle=False)
 
     model = TopoPhaseMLP(n_classes).to(device)
+    
+    # Restauração da métrica escalar simétrica padrão
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
@@ -98,7 +102,7 @@ def train_classifier(csv_path=CSV_PATH, epochs=150, batch_size=256, lr=1e-3, val
             loss.backward()
             optimizer.step()
             tr_loss += loss.item() * len(yb)
-        tr_loss /= len(y_tr_smote)
+        tr_loss /= len(y_tr_res)
 
         model.eval()
         va_loss = 0.0
